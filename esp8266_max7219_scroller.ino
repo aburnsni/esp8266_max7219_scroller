@@ -32,6 +32,8 @@
 ******************************************************************************/
 
 #include <FC16.h>
+#include <EEPROM.h>
+
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 //needed for library
 #include <DNSServer.h>
@@ -41,7 +43,10 @@
 const int csPin = D8;			// CS pin used to connect FC16
 const int displayCount = 4;		// Number of displays; usually 4 or 8
 const int scrollDelay = 100;		// Scrolling speed - pause in ms
-char display_text[] = "\x10 Merry Christmas! \x11";
+//char display_text[25] = "\x10 Merry Christmas! \x11";
+char display_text[25] = "";
+char var2[] = "";
+
 int scrollCount, thisCount;
 int i = 0;
 bool firstRun = 1;
@@ -57,6 +62,33 @@ const byte BMP_Blank[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 
 FC16 display = FC16(csPin, displayCount);
 
+/** Store WLAN credentials to EEPROM */
+void saveVariables() {
+  EEPROM.begin(512);
+  EEPROM.put(0, display_text);
+  EEPROM.put(0 + sizeof(display_text), var2);
+  char ok[2 + 1] = "OK";
+  EEPROM.put(0 + sizeof(display_text) + sizeof(var2), ok);
+  EEPROM.commit();
+  EEPROM.end();
+}
+
+void loadVariables() {
+  EEPROM.begin(512);
+  EEPROM.get(0, display_text);
+  EEPROM.get(0 + sizeof(display_text), var2);
+  char ok[2 + 1];
+  EEPROM.get(0 + sizeof(display_text) + sizeof(var2), ok);
+  EEPROM.end();
+  if (String(ok) != String("OK")) {
+    display_text[0] = 0;
+    var2[0] = 0;
+  }
+  Serial.println("Recovered variables:");
+  Serial.println(display_text);
+  Serial.println(strlen(var2) > 0 ? var2 : "<no var2>");
+}
+
 void setup() {
   Serial.begin(115200);
   WiFiManager wifiManager;
@@ -68,7 +100,12 @@ void setup() {
   display.setIntensity(6);  // set medium brightness
   display.clearDisplay();   // turn all LED off
 
+  //saveVariables();
+  loadVariables();
+
+  Serial.println (display_text);
   scrollCount = ((strlen(display_text) - 1) * 5) + (displayCount * 8) + 1;
+
 }
 
 void loop() {
@@ -89,6 +126,12 @@ void loop() {
     delay(scrollDelay);
     i++;
   }
+//  char newtext[] = "Hello";
+//  strcpy(display_text, newtext);
+//  scrollCount = ((strlen(newtext) - 1) * 5) + (displayCount * 8) + 1;
+
+
+  Serial.println (display_text);
   for (int n = 0; n < 4; n++) {
     display.setBitmap(BMP_4D);
     delay(300);
