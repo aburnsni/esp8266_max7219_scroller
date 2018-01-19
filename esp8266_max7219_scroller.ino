@@ -32,6 +32,11 @@
 ******************************************************************************/
 
 #include <FC16.h>
+#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
+//needed for library
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
 
 const int csPin = D8;			// CS pin used to connect FC16
 const int displayCount = 4;		// Number of displays; usually 4 or 8
@@ -53,6 +58,12 @@ const byte BMP_Blank[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 FC16 display = FC16(csPin, displayCount);
 
 void setup() {
+  Serial.begin(115200);
+  WiFiManager wifiManager;
+  //wifiManager.resetSettings();
+  wifiManager.autoConnect("ESP8266AP", "qwertyuiop");
+  Serial.println("connected...yeey :)");
+
   display.shutdown(false);  // turn on display
   display.setIntensity(8);  // set medium brightness
   display.clearDisplay();   // turn all LED off
