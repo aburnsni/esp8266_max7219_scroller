@@ -65,7 +65,7 @@ void setup() {
   Serial.println("connected...yeey :)");
 
   display.shutdown(false);  // turn on display
-  display.setIntensity(8);  // set medium brightness
+  display.setIntensity(6);  // set medium brightness
   display.clearDisplay();   // turn all LED off
 
   scrollCount = ((strlen(display_text) - 1) * 5) + (displayCount * 8) + 1;
