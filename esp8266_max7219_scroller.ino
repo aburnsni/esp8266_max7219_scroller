@@ -39,12 +39,13 @@
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>         //https://github.com/tzapu/WiFiManager
+WiFiManager wifiManager;
 
 const int csPin = D8;			// CS pin used to connect FC16
 const int displayCount = 4;		// Number of displays; usually 4 or 8
 const int scrollDelay = 100;		// Scrolling speed - pause in ms
-//char display_text[25] = "\x10 Merry Christmas! \x11";
-char display_text[25] = "";
+char display_text[25] = "\x10 Merry Christmas! \x11";
+//char display_text[25] = "";
 char var2[] = "";
 
 int scrollCount, thisCount;
@@ -91,17 +92,29 @@ void loadVariables() {
 
 void setup() {
   Serial.begin(115200);
-  WiFiManager wifiManager;
-  //wifiManager.resetSettings();
-  wifiManager.autoConnect("ESP8266AP", "qwertyuiop");
-  Serial.println("connected...yeey :)");
+
+  // wifiManager.resetSettings();  //for testing
+
+
+    wifiManager.setConfigPortalBlocking(false);
+
+    //automatically connect using saved credentials if they exist
+    //If connection fails it starts an access point with the specified name
+    if(wifiManager.autoConnect("ESP8266AP", "qwertyuiop")){
+        Serial.println("connected...yeey :)");
+    }
+    else {
+        Serial.println("Configportal running");
+    }
+
+
 
   display.shutdown(false);  // turn on display
-  display.setIntensity(6);  // set medium brightness
+  display.setIntensity(5);  // set medium brightness
   display.clearDisplay();   // turn all LED off
 
   //saveVariables();
-  loadVariables();
+  //loadVariables();
 
   Serial.println (display_text);
   scrollCount = ((strlen(display_text) - 1) * 5) + (displayCount * 8) + 1;
@@ -109,6 +122,7 @@ void setup() {
 }
 
 void loop() {
+  wifiManager.process();
   i = 0;
   if (firstRun) {
     thisCount = scrollCount - (displayCount * 8);
