@@ -45,56 +45,41 @@ const int csPin = D8;			// CS pin used to connect FC16
 const int displayCount = 4;		// Number of displays; usually 4 or 8
 const int scrollDelay = 100;		// Scrolling speed - pause in ms
 char display_text[25] = "\x10 Merry Christmas! \x11";
-//char display_text[25] = "";
-char var2[] = "";
-
+bool flash = true;
+int flash_image = 1;
 int scrollCount, thisCount;
+unsigned long lastScroll;
 int i = 0;
-bool firstRun = 1;
+bool firstRun = true;
 
-const byte BMP_4D[] = {
-  0x40, 0x50, 0x54, 0xfe, 0x54, 0x50, 0x40, 0x00,
-  0x40, 0x50, 0x54, 0xfe, 0x54, 0x50, 0x40, 0x00,
-  0x40, 0x50, 0x54, 0xfe, 0x54, 0x50, 0x40, 0x00,
-  0x40, 0x50, 0x54, 0xfe, 0x54, 0x50, 0x40, 0x00
+const byte BMP_IMG[][32] = {  // Image 0 is blank
+  {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  },
+  {
+    0x40, 0x50, 0x54, 0xfe, 0x54, 0x50, 0x40, 0x00,
+    0x40, 0x50, 0x54, 0xfe, 0x54, 0x50, 0x40, 0x00,
+    0x40, 0x50, 0x54, 0xfe, 0x54, 0x50, 0x40, 0x00,
+    0x40, 0x50, 0x54, 0xfe, 0x54, 0x50, 0x40, 0x00
+  },
+  {
+    0x10, 0x54, 0x38, 0xfe, 0x38, 0x54, 0x10, 0x00,
+    0x10, 0x54, 0x38, 0xfe, 0x38, 0x54, 0x10, 0x00,
+    0x10, 0x54, 0x38, 0xfe, 0x38, 0x54, 0x10, 0x00,
+    0x10, 0x54, 0x38, 0xfe, 0x38, 0x54, 0x10, 0x00
+  }
 };
-
-const byte BMP_Blank[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+const char BMP_TXT[][8] = {"Blank", "Tree", "Star"};
 
 FC16 display = FC16(csPin, displayCount);
-
-/** Store WLAN credentials to EEPROM */
-void saveVariables() {
-  EEPROM.begin(512);
-  EEPROM.put(0, display_text);
-  EEPROM.put(0 + sizeof(display_text), var2);
-  char ok[2 + 1] = "OK";
-  EEPROM.put(0 + sizeof(display_text) + sizeof(var2), ok);
-  EEPROM.commit();
-  EEPROM.end();
-}
-
-void loadVariables() {
-  EEPROM.begin(512);
-  EEPROM.get(0, display_text);
-  EEPROM.get(0 + sizeof(display_text), var2);
-  char ok[2 + 1];
-  EEPROM.get(0 + sizeof(display_text) + sizeof(var2), ok);
-  EEPROM.end();
-  if (String(ok) != String("OK")) {
-    display_text[0] = 0;
-    var2[0] = 0;
-  }
-  Serial.println("Recovered variables:");
-  Serial.println(display_text);
-  Serial.println(strlen(var2) > 0 ? var2 : "<no var2>");
-}
 
 void setup() {
   Serial.begin(115200);
 
   // wifiManager.resetSettings();  //for testing
-
 
     wifiManager.setConfigPortalBlocking(false);
 
@@ -107,18 +92,13 @@ void setup() {
         Serial.println("Configportal running");
     }
 
-
-
   display.shutdown(false);  // turn on display
   display.setIntensity(5);  // set medium brightness
   display.clearDisplay();   // turn all LED off
 
-  //saveVariables();
-  //loadVariables();
-
   Serial.println (display_text);
   scrollCount = ((strlen(display_text) - 1) * 5) + (displayCount * 8) + 1;
-
+  lastScroll = millis();
 }
 
 void loop() {
@@ -131,26 +111,24 @@ void loop() {
     thisCount = scrollCount;
   }
   display.setText(display_text);
-
-  while (i < thisCount) {
-    // Perform scroll
+  
+  if (lastScroll + scrollDelay < millis()) {
     display.update();
-
-    // Wait for 30 ms
-    delay(scrollDelay);
     i++;
+    lastScroll = millis();
   }
-//  char newtext[] = "Hello";
-//  strcpy(display_text, newtext);
-//  scrollCount = ((strlen(newtext) - 1) * 5) + (displayCount * 8) + 1;
-
-
-  Serial.println (display_text);
-  for (int n = 0; n < 4; n++) {
-    display.setBitmap(BMP_4D);
-    delay(300);
-    display.setBitmap(BMP_Blank);
-    delay(300);
+  // Serial.println (display_text);
+  if ( i> thisCount && flash) {
+    Serial.print("Flash\t");
+    Serial.println(flash);
+    Serial.print("Image\t");
+    Serial.println(flash_image);
+    for (int n = 0; n < 4; n++) {
+      display.setBitmap(BMP_IMG[flash_image]);
+      delay(300);
+      display.setBitmap(BMP_IMG[0]);
+      delay(300);
+    }
+    i=0;
   }
-
 }
