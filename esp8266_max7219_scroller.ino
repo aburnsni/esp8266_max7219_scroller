@@ -46,6 +46,7 @@ const int displayCount = 4;		// Number of displays; usually 4 or 8
 const int scrollDelay = 100;		// Scrolling speed - pause in ms
 char display_text[25] = "\x10 Merry Christmas! \x11";
 bool flash = true;
+bool flashing = false;
 int flash_image = 1;
 int scrollCount, thisCount;
 unsigned long lastScroll;
@@ -99,36 +100,53 @@ void setup() {
   Serial.println (display_text);
   scrollCount = ((strlen(display_text) - 1) * 5) + (displayCount * 8) + 1;
   lastScroll = millis();
+  i = 0;
 }
 
 void loop() {
+  delay(1); // Crashes without delay ?!
+  // Serial.println("Process");
   wifiManager.process();
-  i = 0;
+  // Serial.println("Is firstrun?");
   if (firstRun) {
     thisCount = scrollCount - (displayCount * 8);
     firstRun = 0;
   } else {
     thisCount = scrollCount;
   }
-  display.setText(display_text);
-  
-  if (lastScroll + scrollDelay < millis()) {
-    display.update();
-    i++;
-    lastScroll = millis();
-  }
-  // Serial.println (display_text);
-  if ( i> thisCount && flash) {
-    Serial.print("Flash\t");
-    Serial.println(flash);
-    Serial.print("Image\t");
-    Serial.println(flash_image);
-    for (int n = 0; n < 4; n++) {
-      display.setBitmap(BMP_IMG[flash_image]);
-      delay(300);
-      display.setBitmap(BMP_IMG[0]);
-      delay(300);
+
+  if (!flashing) {
+    // Serial.println("Is i = 0?");
+    if (i == 0) {
+        display.setText(display_text);
     }
-    i=0;
+    // Serial.println("Check last display update.");
+    if (lastScroll + scrollDelay < millis()) {
+      display.update();
+      i++;
+      lastScroll = millis();
+      if (i >= thisCount) {
+        flashing = true;
+        i = 0;
+      }
+    }
+  } else if (flashing) {
+    if (flash) {
+      Serial.print("Flash\t");
+      Serial.println(flash);
+      Serial.print("Image\t");
+      Serial.println(flash_image);
+
+      for (int n = 0; n < 4; n++) {
+        display.setBitmap(BMP_IMG[flash_image]);
+        delay(300);
+        display.setBitmap(BMP_IMG[0]);
+        delay(300);
+      }
+      flashing = false;
+      i = 0;
+    } else {
+      i = 0;
+    }
   }
 }
