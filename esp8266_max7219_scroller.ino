@@ -48,6 +48,7 @@ char display_text[25] = "\x10 Merry Christmas! \x11";
 bool flash = true;
 bool flashing = false;
 int flash_image = 1;
+int brightness = 2;
 int scrollCount, thisCount;
 unsigned long lastScroll;
 int i = 0;
@@ -94,7 +95,7 @@ void setup() {
     }
 
   display.shutdown(false);  // turn on display
-  display.setIntensity(5);  // set medium brightness
+  display.setIntensity(brightness);  // set medium brightness
   display.clearDisplay();   // turn all LED off
 
   Serial.println (display_text);
